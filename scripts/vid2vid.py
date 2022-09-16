@@ -17,7 +17,7 @@ import numpy as np
 import sys
 
 class ffmpeg:
-    def __init__(self, cmdln, use_stdin=False, use_stdout=False, use_stderr=False, print_to_console=False):
+    def __init__(self, cmdln, use_stdin=False, use_stdout=False, use_stderr=False, print_to_console=True):
         self._process = None
         # self._use_stdin = use_stdin
         # self._use_stdout = use_stdout
@@ -53,7 +53,7 @@ class ffmpeg:
             , stdout=self._stdout
             , stderr=self._stderr
         )
-        from io import BufferedWriter,BufferedReader
+        #from io import BufferedWriter,BufferedReader
         #self.writer = BufferedWriter(self._process.stdin)
         #self.reader = BufferedReader(self._process.stdout)
 
@@ -70,6 +70,7 @@ class ffmpeg:
         print(cnt)
         print(type(arr))
         print(arr.shape)        
+        print(len(arr)) 
         print("")        
         return arr
 
@@ -126,22 +127,31 @@ class Script(scripts.Script):
         p.do_not_save_grid = True
         p.do_not_save_samples = True
         
-        ff_write_file = 'ffmpeg -y -loglevel panic -f rawvideo -pix_fmt rgb24 -s:v {0}x{1} -r 24 -i - -c:v libx264 -preset fast -crf 24 ?filename?'
+        ff_write_file = 'ffmpeg -y -loglevel panic -f rawvideo -pix_fmt rgb24 -s:v {0}x{1} -r 24 -i - -c:v libx264 -preset fast -crf 24 "?filename?"'
         
         #ff_write_file = 'ffmpeg -y -loglevel panic -f rawvideo -pix_fmt rgb24 -s:v {0}x{1} -r 24 -i - -c:v libx264 -preset fast -crf 24 ?filename?'
-        ff_write_file = ff_write_file.format(p.width, p.height).split(' ')
-        ff_write_file[-1] = output_path
-        ff_read_file = 'ffmpeg -y -loglevel panic -ss 00:00:00 -t 00:00:01 -i "?filename?" -s:v {0}x{1} -vf fps=24 -f image2pipe -pix_fmt rgb24 -c:v rawvideo -'
-        ff_read_file = ff_read_file.format(p.width, p.height).split(' ')
-        ff_read_file[5] = input_path
+        ff_write_file = ff_write_file.format(p.width, p.height).replace("?filename?", output_path)
+        print('file write')
+        print(ff_write_file)
+        ff_write_file = ff_write_file.split(' ')       
+        #ff_read_file = 'ffmpeg -y -loglevel panic -ss 00:00:00 -t 00:00:01 -i "?filename?" -s:v {0}x{1} -vf fps=24 -f image2pipe -pix_fmt rgb24 -c:v rawvideo -'
+        ff_read_file = 'ffmpeg -i ?filename? -f image2pipe -pix_fmt rgb24 -vcodec rawvideo  -'
+        ff_read_file = ff_read_file.format(p.width, p.height).replace("?filename?", input_path)
+        print('file read')
+        print(ff_read_file)
+        ff_read_file = ff_read_file.split(' ')
+        #ff_read_file[5] = input_path
         encoder = ffmpeg(ff_write_file, use_stdin=True)
         decoder = ffmpeg(ff_read_file, use_stdout=True)
-        encoder.start()
+        #encoder.start()
         decoder.start()
         
         pull_cnt = p.width*p.height*3
         frame_num = 0
+        import time
+        time.sleep(2)
         while True:
+            
             print()
             print(ff_write_file)
             print()
@@ -153,7 +163,7 @@ class Script(scripts.Script):
             proc = process_images(p)
             PIL_image = proc.images[0]
             np_image = np.asarray(PIL_image)
-            encoder.write(np_image)
-        encoder.write_eof()
+            #encoder.write(np_image)
+        #encoder.write_eof()
         
         return Processed(p, [], p.seed, "")
