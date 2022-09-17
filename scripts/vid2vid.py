@@ -131,17 +131,22 @@ class Script(scripts.Script):
         
         #ff_write_file = 'ffmpeg -y -loglevel panic -f rawvideo -pix_fmt rgb24 -s:v {0}x{1} -r 24 -i - -c:v libx264 -preset fast -crf 24 ?filename?'
         ff_write_file = ff_write_file.format(p.width, p.height).replace("?filename?", output_path)
-        print('file write')
-        print(ff_write_file)
+        #print('file write')
+        #print(ff_write_file)
         ff_write_file = ff_write_file.split(' ')       
         #ff_read_file = 'ffmpeg -y -loglevel panic -ss 00:00:00 -t 00:00:01 -i "?filename?" -s:v {0}x{1} -vf fps=24 -f image2pipe -pix_fmt rgb24 -c:v rawvideo -'
-        ff_read_file = 'ffmpeg -i ?filename? -f image2pipe -pix_fmt rgb24 -vcodec rawvideo  -'
+        ff_read_file = 'ffmpeg -ss 00:00:00 -t 00:00:01 -i ?filename? -s:v {0}x{1} -vf fps=24 -f image2pipe -pix_fmt rgb24 -vcodec rawvideo -'
         ff_read_file = ff_read_file.format(p.width, p.height).replace("?filename?", input_path)
         print('file read')
         print(ff_read_file)
+      
         ff_read_file = ff_read_file.split(' ')
+        print('file read')
+        print(ff_read_file)  
+        print('file read')
+        print(ff_read_file)  
         #ff_read_file[5] = input_path
-        encoder = ffmpeg(ff_write_file, use_stdin=True)
+        #encoder = ffmpeg(ff_write_file, use_stdin=True)
         decoder = ffmpeg(ff_read_file, use_stdout=True)
         #encoder.start()
         decoder.start()
@@ -149,18 +154,22 @@ class Script(scripts.Script):
         pull_cnt = p.width*p.height*3
         frame_num = 0
         import time
-        time.sleep(2)
-        while True:
-            
+        while True:            
             print()
             print(ff_write_file)
             print()
-            frame_num += 1
-            np_image = decoder.readout(pull_cnt)        
-            PIL_image = Image.fromarray(np.uint8(np_image)).convert('RGB')
-            state.job = f"{frame_num} frames processed"
-            p.init_images = [PIL_image]
-            proc = process_images(p)
+            batch = []
+            for i in range(10):                
+                np_image = decoder.readout(pull_cnt)        
+                PIL_image = Image.fromarray(np.uint8(np_image)).convert('RGB')
+                batch.append(PIL_image)
+            state.job_count = state.job_count + len(batch)
+                
+            for image in batch:
+                frame_num += 1            
+                state.job = f"{frame_num} frames processed"
+                p.init_images = [image]
+                proc = process_images(p)
             PIL_image = proc.images[0]
             np_image = np.asarray(PIL_image)
             #encoder.write(np_image)
