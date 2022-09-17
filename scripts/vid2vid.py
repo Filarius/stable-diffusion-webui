@@ -1,5 +1,5 @@
 # Author: Filarius
-# https://github.com/ThereforeGames/txt2img2img
+# https://github.com/Filarius
 
 import math
 import os
