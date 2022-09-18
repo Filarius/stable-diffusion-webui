@@ -101,6 +101,7 @@ class Script(scripts.Script):
     def run(self, p, input_path, output_path, crf, fps, start_time, end_time, show_preview):
         p.do_not_save_grid = True
         p.do_not_save_samples = True
+        p.batch_count = 1
         
         start_time = start_time.strip()
         end_time = end_time.strip()
@@ -145,24 +146,32 @@ class Script(scripts.Script):
 
         first_frame = True
         
-        while True:        
-            np_image = decoder.readout(pull_cnt)  
-            if len(np_image)==0:
-                break;
-            PIL_image = Image.fromarray(np.uint8(np_image).reshape((p.height,p.width, 3)), mode="RGB" )
-            frame_num += 1            
+        while True:
+            batch = []
+            for _ in range(p.batch_size):
+                np_image = decoder.readout(pull_cnt)
+                if len(np_image)==0:
+                    break;
+                PIL_image = Image.fromarray(np.uint8(np_image).reshape((p.height,p.width, 3)), mode="RGB" )
+                batch.append(PIL_image)
+                frame_num += 1
+            if len(batch) == 0:
+                break
             state.job = f"{frame_num} frames processed"
-            p.init_images = [PIL_image]
+            p.init_images = batch
             proc = process_images(p)  
-            if len(proc.images)==0:
+            if len(proc.images) == 0:
                 break;
-            PIL_image = proc.images[0]            
             if show_preview:
-                img_rgb = cvtColor(np.array(PIL_image), COLOR_BGR2RGB)
-                cv2.imshow('vid2vid streamig',img_rgb) 
-                cv2.waitKey(1)            
-            np_image = np.asarray(PIL_image)
-            encoder.write(np_image)
+                img_rgb = cvtColor(np.array(proc.images[0]), COLOR_BGR2RGB)
+                cv2.imshow('vid2vid streamig',img_rgb)
+                cv2.waitKey(1)
+
+            for i in range(len(batch)):
+                PIL_image = proc.images[i]
+                np_image = np.asarray(PIL_image)
+                encoder.write(np_image)
+
         encoder.write_eof()
         if show_preview:
             cv2.destroyAllWindows() 
