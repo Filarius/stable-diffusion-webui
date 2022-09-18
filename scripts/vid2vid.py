@@ -12,7 +12,7 @@ import gradio as gr
 from modules.processing import Processed, process_images
 from PIL import Image
 from modules.shared import opts, cmd_opts, state
-
+from modules import processing
 
 
 from subprocess import Popen, PIPE
@@ -99,6 +99,9 @@ class Script(scripts.Script):
         return [input_path, output_path, crf, fps, start_time, end_time, show_preview]
 
     def run(self, p, input_path, output_path, crf, fps, start_time, end_time, show_preview):
+        processing.fix_seed(p)
+        p.subseed_strength == 0
+        seed = p.seed
         p.do_not_save_grid = True
         p.do_not_save_samples = True
         p.batch_count = 1
@@ -159,6 +162,7 @@ class Script(scripts.Script):
                 break
             state.job = f"{frame_num} frames processed"
             p.init_images = batch
+            p.seed = [seed for _ in batch] # keep same seed in batch, fix
             proc = process_images(p)  
             if len(proc.images) == 0:
                 break;
