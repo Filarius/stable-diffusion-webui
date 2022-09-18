@@ -156,9 +156,9 @@ class Script(scripts.Script):
             proc = process_images(p)  
             if len(proc.images)==0:
                 break;
-            PIL_image = proc.images[0]
-            img_rgb = cvtColor(np.array(PIL_image), COLOR_BGR2RGB)
+            PIL_image = proc.images[0]            
             if show_preview:
+                img_rgb = cvtColor(np.array(PIL_image), COLOR_BGR2RGB)
                 cv2.imshow('vid2vid streamig',img_rgb) 
                 cv2.waitKey(1)            
             np_image = np.asarray(PIL_image)
