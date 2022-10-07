@@ -54,7 +54,7 @@ class Script(scripts.Script):
                 minimum=0, maximum=20, step=1, label="Seed step size", value=3
             )
             seed_max_distance = gr.Slider(
-                minimum=3, maximum=100, step=1, label="Seed max distance", value=15
+                minimum=3, maximum=100, step=1, label="Seed max distance", value=10
             )
 
         with gr.Row():
@@ -86,6 +86,8 @@ class Script(scripts.Script):
 
         # p.subseed_strength == 0
         initial_seed = p.seed
+        initial_info = None
+
         p.do_not_save_grid = True
         p.do_not_save_samples = True
         p.batch_count = 1
@@ -156,18 +158,23 @@ class Script(scripts.Script):
             batch.append(image_PIL)
 
             if len(batch) == p.batch_size:
-                state.job = f"{frame}/{loops}:"
-
                 seed_step = (
                     random.randint(0, seed_walk) * 1 if random.randint(0, 1) else -1
                 )
-                if abs(seed + seed_step - initial_seed) <= seed_max_distance:
+                if (
+                    seed > 0
+                    or abs(seed + seed_step - initial_seed) <= seed_max_distance
+                ):
                     seed = seed + seed_step
-                p.seed = [seed for _ in batch]
 
+                p.seed = [seed for _ in batch]
                 p.init_images = batch
                 batch = []
+
+                state.job = f"{frame}/{loops}|{seed}/{seed_step}"
                 proc = process_images(p)
+                if initial_info is None:
+                    initial_info = proc.info
 
                 for output in proc.images:
                     encoder.write(np.asarray(output))
@@ -175,7 +182,7 @@ class Script(scripts.Script):
             raw_image = decoder.readout(pull_count)
             frame += 1
 
-        return Processed(p, [], p.seed, "")
+        return Processed(p, [], p.seed, initial_info)
 
 
 class ffmpeg:
