@@ -1,6 +1,5 @@
-# Authors: Filarius, orcist
-# https://github.com/Filarius
-# https://github.com/orcist
+# Author: Filarius and orcist1
+# adjusted from https://github.com/Filarius
 
 # import math
 # from fileinput import filename
@@ -51,10 +50,10 @@ class Script(scripts.Script):
 
         with gr.Row():
             seed_walk = gr.Slider(
-                minimum=0, maximum=20, step=1, label="Seed step size", value=3
+                minimum=-20, maximum=20, step=1, label="Seed step size", value=0
             )
             seed_max_distance = gr.Slider(
-                minimum=3, maximum=100, step=1, label="Seed max distance", value=10
+                minimum=1, maximum=200, step=1, label="Seed max distance", value=10
             )
 
         with gr.Row():
@@ -144,9 +143,12 @@ class Script(scripts.Script):
         seed = initial_seed
 
         frame = 1
-        seconds = ffmpeg.seconds(end_time) - ffmpeg.seconds(start_time)
-        loops = seconds * int(fps)
-        state.job_count = loops
+        if len(end_time) > 0:
+            seconds = ffmpeg.seconds(end_time) - ffmpeg.seconds(start_time)
+            loops = seconds * int(fps)
+            state.job_count = loops
+        else:
+            loops = None
 
         pull_count = p.width * p.height * 3
         raw_image = decoder.readout(pull_count)
@@ -159,7 +161,9 @@ class Script(scripts.Script):
 
             if len(batch) == p.batch_size:
                 seed_step = (
-                    random.randint(0, seed_walk) * 1 if random.randint(0, 1) else -1
+                    random.randint(0, seed_walk)
+                    if seed_walk >= 0
+                    else random.randint(seed_walk, 0)
                 )
                 if (
                     seed > 0
@@ -171,7 +175,7 @@ class Script(scripts.Script):
                 p.init_images = batch
                 batch = []
 
-                state.job = f"{frame}/{loops}|{seed}/{seed_step}"
+                state.job = f"{frame}/{int(loops)}|{seed}/{seed_step}"
                 proc = process_images(p)
                 if initial_info is None:
                     initial_info = proc.info
