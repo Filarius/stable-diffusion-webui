@@ -160,16 +160,17 @@ class Script(scripts.Script):
             batch.append(image_PIL)
 
             if len(batch) == p.batch_size:
-                seed_step = (
-                    random.randint(0, seed_walk)
-                    if seed_walk >= 0
-                    else random.randint(seed_walk, 0)
-                )
-                if (
-                    seed > 0
-                    or abs(seed + seed_step - initial_seed) <= seed_max_distance
-                ):
-                    seed = seed + seed_step
+                if seed_walk != 0:
+                    seed_step = (
+                        random.randint(0, seed_walk)
+                        if seed_walk >= 0
+                        else random.randint(seed_walk, 0)
+                    )
+                    if (
+                        seed_step != 0
+                        or abs(seed + seed_step - initial_seed) <= seed_max_distance
+                    ):
+                        seed = seed + seed_step
 
                 p.seed = [seed for _ in batch]
                 p.init_images = batch
